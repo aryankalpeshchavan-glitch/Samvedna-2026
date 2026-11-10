@@ -22,6 +22,7 @@ export default function CesiumMap({ socketRef }) {
   const containerRef = useRef(null);
   const viewerRef = useRef(null);
   const [viewerReady, setViewerReady] = useState(false);
+  const [mapError, setMapError] = useState('');
   const layers = useStore((s) => s.layers);
   const toggleLayer = useStore((s) => s.toggleLayer);
   const showPrediction = useStore((s) => s.showPrediction);
@@ -29,40 +30,49 @@ export default function CesiumMap({ socketRef }) {
   const selectedPerson = useStore((s) => s.selectedPerson);
   const selectedUnit = useStore((s) => s.selectedUnit);
 
-  // Initialize Cesium Viewer
+  // Initialize Cesium Viewer. Keep the dashboard usable even if Ion is not configured.
   useEffect(() => {
     if (!containerRef.current || viewerRef.current) return;
 
-    Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_TOKEN;
+    const ionToken = import.meta.env.VITE_CESIUM_ION_TOKEN;
+    if (ionToken) Cesium.Ion.defaultAccessToken = ionToken;
 
-    const viewer = new Cesium.Viewer(containerRef.current, {
-      terrain: Cesium.Terrain.fromWorldTerrain(),
-      baseLayerPicker: false,
-      geocoder: false,
-      homeButton: false,
-      sceneModePicker: false,
-      selectionIndicator: false,
-      navigationHelpButton: false,
-      animation: false,
-      timeline: false,
-      fullscreenButton: false,
-      infoBox: false,
-      requestRenderMode: true,
-      maximumRenderTimeChange: Infinity,
-      msaaSamples: 2
+    let viewer;
+    try {
+      viewer = new Cesium.Viewer(containerRef.current, {
+        // World terrain is Ion-hosted. Use ellipsoid terrain as a fallback without a token.
+        terrain: ionToken
+          ? Cesium.Terrain.fromWorldTerrain()
+          : new Cesium.EllipsoidTerrainProvider(),
+        baseLayerPicker: false,
+        geocoder: false,
+        homeButton: false,
+        sceneModePicker: false,
+        selectionIndicator: false,
+        navigationHelpButton: false,
+        animation: false,
+        timeline: false,
+        fullscreenButton: false,
+        infoBox: false,
+        requestRenderMode: true,
+        maximumRenderTimeChange: Infinity,
+        msaaSamples: 2
+      });
+    } catch (error) {
+      console.error('[Cesium] Viewer initialization failed:', error);
+      setMapError('The map could not be initialized. Check the browser console for Cesium errors.');
+      return;
+    }
+
+    viewerRef.current = viewer;
+    setViewerReady(true);
+
+    // Report asynchronous terrain/imagery and rendering failures instead of leaving a spinner forever.
+    viewer.scene.renderError.addEventListener((_scene, error) => {
+      console.error('[Cesium] Scene render error:', error);
+      setMapError('The map encountered a rendering error. Check WebGL support and Cesium assets.');
     });
 
-    // Scene settings for performance and visuals
-    const scene = viewer.scene;
-    scene.globe.enableLighting = true;
-    scene.fog.enabled = true;
-    scene.fog.density = 0.0002;
-    scene.globe.depthTestAgainstTerrain = true;
-    scene.skyAtmosphere.hueShift = -0.05;
-    scene.skyAtmosphere.saturationShift = -0.2;
-    scene.skyAtmosphere.brightnessShift = -0.1;
-
-    // Fly to Himalayan region (Chamoli)
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(79.32, 30.40, 25000),
       orientation: {
@@ -73,13 +83,8 @@ export default function CesiumMap({ socketRef }) {
       duration: 2
     });
 
-    viewerRef.current = viewer;
-    setViewerReady(true);
-
     return () => {
-      if (viewer && !viewer.isDestroyed()) {
-        viewer.destroy();
-      }
+      if (viewer && !viewer.isDestroyed()) viewer.destroy();
       viewerRef.current = null;
       setViewerReady(false);
     };
@@ -111,6 +116,13 @@ export default function CesiumMap({ socketRef }) {
   return (
     <div className="map-container" id="map-container">
       <div id="cesiumContainer" ref={containerRef} />
+
+      {mapError && (
+        <div className="map-error" role="alert">
+          <strong>Map unavailable</strong>
+          <span>{mapError}</span>
+        </div>
+      )}
 
       {/* Layer toggle chips */}
       <div className="layer-controls">
