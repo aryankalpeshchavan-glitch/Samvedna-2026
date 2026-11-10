@@ -28,7 +28,7 @@ class Settings:
         os.getenv("ASSIGNMENT_ACK_TIMEOUT_SECONDS", str(int(os.getenv("AUTO_REASSIGN_MINUTES", "5")) * 60))
     )
     VOLUNTEER_HEARTBEAT_TIMEOUT_MINUTES: int = int(os.getenv("VOLUNTEER_HEARTBEAT_TIMEOUT_MINUTES", "30"))
-    
+
     RISK_FRESHNESS_MINUTES: int = int(os.getenv("RISK_FRESHNESS_MINUTES", "60"))
 
     # Sensor health & liveness timeouts
@@ -36,13 +36,22 @@ class Settings:
     SENSOR_OFFLINE_TIMEOUT_SECONDS: int = int(os.getenv("SENSOR_OFFLINE_TIMEOUT_SECONDS", "1800"))
     SENSOR_CLOCK_SKEW_TOLERANCE_SECONDS: int = int(os.getenv("SENSOR_CLOCK_SKEW_TOLERANCE_SECONDS", "60"))
 
-    # Operational Priority Engine weights — must sum to 1.0
+    # Operational Priority Engine weights -- must sum to 1.0
     PRIORITY_W_RISK: float = float(os.getenv("PRIORITY_W_RISK", "0.35"))
     PRIORITY_W_EXPOSURE: float = float(os.getenv("PRIORITY_W_EXPOSURE", "0.30"))
     PRIORITY_W_VULNERABILITY: float = float(os.getenv("PRIORITY_W_VULNERABILITY", "0.20"))
     PRIORITY_W_RESPONSE_GAP: float = float(os.getenv("PRIORITY_W_RESPONSE_GAP", "0.15"))
 
-    # CORS — comma-separated or JSON list of allowed origins.
+    # --- Demo Login ---
+    # DISABLED by default. Enable ONLY via backend hosting environment variables.
+    # NEVER commit real credentials to .env files, source code, or README files.
+    DEMO_LOGIN_ENABLED: bool = os.getenv("DEMO_LOGIN_ENABLED", "false").lower() == "true"
+    DEMO_LOGIN_PHONE: str = os.getenv("DEMO_LOGIN_PHONE", "")
+    DEMO_LOGIN_PASSWORD: str = os.getenv("DEMO_LOGIN_PASSWORD", "")
+    # Short-lived token duration for demo sessions (default: 30 minutes)
+    DEMO_LOGIN_TOKEN_MINUTES: int = int(os.getenv("DEMO_LOGIN_TOKEN_MINUTES", "30"))
+
+    # CORS -- comma-separated or JSON list of allowed origins.
     # Defaults to ["*"] for local development.
     # In production, set: CORS_ORIGINS='["https://your-domain.com"]'
     @property

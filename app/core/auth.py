@@ -26,6 +26,18 @@ def create_token(user_id: int, role: str) -> str:
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
 
+def create_demo_token(user_id: int, role: str) -> str:
+    """Generate a short-lived JWT for demo sessions.
+
+    Uses DEMO_LOGIN_TOKEN_MINUTES (default 30 min) instead of the standard
+    JWT_EXPIRE_MINUTES so demo sessions naturally expire sooner.
+    """
+    from datetime import datetime, timedelta
+    expire = datetime.utcnow() + timedelta(minutes=settings.DEMO_LOGIN_TOKEN_MINUTES)
+    payload = {"sub": str(user_id), "role": role, "exp": expire}
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+
 def decode_token(token: str) -> dict:
     try:
         return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])

@@ -219,6 +219,29 @@ export async function login(phone: string, password: string): Promise<{ access_t
   return data
 }
 
+/**
+ * Demo login — calls the dedicated backend endpoint that reads credentials
+ * from server-side environment variables only.
+ *
+ * Security: credentials never travel through the frontend or Vite env vars.
+ * The backend validates the account, confirms the officer role, and returns
+ * a short-lived JWT identical in structure to a normal login response.
+ */
+export async function demoLogin(): Promise<{ access_token: string; role: string }> {
+  const data = await request('/auth/demo-login', {
+    method: 'POST',
+    skipAuth: true,
+  })
+  if (data?.access_token) {
+    setAuthToken(data.access_token)
+    if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+      localStorage.setItem('crisiscore_user_role', data.role || '')
+    }
+    notifyAuthChange()
+  }
+  return data
+}
+
 export function logout(): void {
   setAuthToken(null)
   if (typeof localStorage !== 'undefined' && typeof localStorage.removeItem === 'function') {

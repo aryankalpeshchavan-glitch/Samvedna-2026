@@ -64,20 +64,56 @@ function DockItem({ tab, isActive, onSelect, mouseX, mouseY, label, index, total
 
   return (
     <div className="relative flex items-center justify-center">
-      {/* Tooltip Label on Hover (Desktop: to the right, Mobile: above) */}
-      <AnimatePresence>
-        {isHovered && (
-          <motion.div
-            initial={{ opacity: 0, x: -6, scale: 0.9 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: -4, scale: 0.9 }}
-            transition={{ duration: 0.15 }}
-            className={`absolute z-50 whitespace-nowrap pointer-events-none px-2.5 py-1 rounded-lg bg-[#202622] text-[#FAF9F3] text-[11px] font-heading font-bold shadow-md border border-[#FAF9F3]/10 lg:left-full lg:ml-3 lg:top-1/2 lg:-translate-y-1/2 -top-9 ${mobileTooltipAlign} lg:translate-x-0`}
-          >
-            {label}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/*
+        TOOLTIP — two-layer structure:
+        Layer 1 (outer): absolute positioning wrapper — handles placement (desktop: right, mobile: above).
+                         Uses mobileTooltipAlign to prevent edge clipping on the first and last mobile items.
+                         No transform animations here, only Tailwind positioning.
+        Layer 2 (inner): motion.div — handles ONLY opacity/scale animation via Framer Motion.
+                         No Tailwind translate classes on this element to avoid transform conflicts.
+      */}
+
+      {/* Desktop tooltip wrapper: positioned to the right, vertically centred */}
+      <div
+        className="hidden lg:block absolute left-full ml-3 top-1/2 -translate-y-1/2 pointer-events-none z-50"
+        aria-hidden="true"
+      >
+        <AnimatePresence>
+          {isHovered && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.88 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.88 }}
+              transition={{ duration: 0.14, ease: 'easeOut' }}
+              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-[#202622] text-[#FAF9F3] text-[11px] font-heading font-bold shadow-lg border border-white/10 origin-left"
+              role="tooltip"
+            >
+              {label}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Mobile tooltip wrapper: positioned above the icon with edge-clipping protection */}
+      <div
+        className={`lg:hidden absolute bottom-full mb-2 pointer-events-none z-50 ${mobileTooltipAlign}`}
+        aria-hidden="true"
+      >
+        <AnimatePresence>
+          {isHovered && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.88 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.88 }}
+              transition={{ duration: 0.14, ease: 'easeOut' }}
+              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-[#202622] text-[#FAF9F3] text-[11px] font-heading font-bold shadow-lg border border-white/10 origin-bottom"
+              role="tooltip"
+            >
+              {label}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Dock Item Button */}
       <motion.button
@@ -94,6 +130,7 @@ function DockItem({ tab, isActive, onSelect, mouseX, mouseY, label, index, total
             : 'bg-[#F4F1E8] text-[#536A72] hover:text-[#202622] hover:bg-[#E8E6DC]'
         }`}
         aria-label={`Navigate to ${label}`}
+        aria-describedby={isHovered ? `tooltip-${tab.id}` : undefined}
       >
         <motion.div style={{ width: iconSize, height: iconSize }} className="flex items-center justify-center relative">
           <Icon className="w-full h-full" />
